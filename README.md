@@ -34,7 +34,7 @@ We will try to keep this repo up-to-date. For now, here are the apps currently i
 
 * phpMyAdmin - Database management
 * InfluxDB - Database for sensor data
-* Postgres - Database
+* mariadb - Database
 * Grafana - Graphical data visualization for InfluxDB data
 * Varken - Monitor Plex, Sonarr, Radarr, and Other Data
 
@@ -59,7 +59,7 @@ We will try to keep this repo up-to-date. For now, here are the apps currently i
 ### MEDIA SERVER
 
 * Plex - Media Server
-* Jellyfin - Media Server
+* Jellyfin - Media Server (OBSOLETE)
 * Emby - Media Server (OBSOLETE)
 * Tautulli - Previously PlexPy. Plex statistics and monitoring
 * Plex-Sync - For Syncing watched status between plex servers 
@@ -99,11 +99,6 @@ Some of the containers are behind VPN for privacy and security. We have been usi
 * jDownloader
 
 Based on the docker-compose blocks for the above apps, you can almost any of the apps behind VPN. 
-
-## MariaDB 
-Some of the containers in docker-compose.yml (eg. ZoneMinder, Guacamole, phpMyAdmin, etc.) need MariaDB. At this point, an external MariaDB host is specified, with the assumption that you have MariaDB running elsewhere (eg. on your NAS).
-
-At some point, we will add a MariaDB container and use that as the database host. 
 
 # Usage
 
