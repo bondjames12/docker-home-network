@@ -14,9 +14,7 @@ services:
 # TransmissionBT - Torrent Downloader
 # ONLY ACCESSIBLE THROUGH https://domain.com/transmission/web/ if using PathPrefix
   transmission-vpn:
-    profiles: ["torrent"]
     depends_on:
-      - transmission-openvpn-proxy
       - netclient
     image: haugene/transmission-openvpn:4.3.2
     container_name: transmission-vpn
@@ -33,10 +31,10 @@ services:
 
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${USER_DIR}/transmission/data:/data
+      - ${USER_DIR}/docker/transmission/data:/data
       - ${DOWNLOAD_DIR}:/downloads
-      - ${USER_DIR}/transmission/ovpn_configs/:/etc/openvpn/custom
-      - ${USER_DIR}/transmission/config:/config
+      - ${USER_DIR}/docker/transmission/ovpn_configs/:/etc/openvpn/custom
+      - ${USER_DIR}/docker/transmission/config:/config
     environment:
       CREATE_TUN_DEVICE: false
       OPENVPN_PROVIDER: "custom"
@@ -47,8 +45,8 @@ services:
       TZ: America\Edmonton
       UMASK_SET: 002
       TRANSMISSION_WEB_UI: transmission-web-control
-      TRANSMISSION_RPC_USERNAME: ${TRANSMISSION_USERNAME)
-      TRANSMISSION_RPC_PASSWORD: ${TRANSMISSION_PASSWORD}
+#      TRANSMISSION_USERNAME: ${TRANSMISSION_USERNAME}
+#      TRANSMISSION_PASSWORD: ${TRANSMISSION_PASSWORD}
 #     labels:
 #       - "autoheal=true"
 #       - "traefik.enable=true"
@@ -70,7 +68,6 @@ services:
 #       - "traefik.http.services.transmission-vpn-svc.loadbalancer.server.port=9091"
 
   transmission-openvpn-proxy:
-    profiles: ["torrent"]
     restart: always
     links:
       - 'transmission-vpn:transmission'
@@ -78,7 +75,7 @@ services:
       - '${TRANSMISSION_PORT}:8080'
     container_name: transmission-openvpn-proxy
     image: haugene/transmission-openvpn-proxy
-    
+
 # SABnzbd - Binary newsgrabber (NZB downloader)
 # Disable SABNnzbd's built-in HTTPS support for traefik proxy to work
 # Needs trailing / if using PathPrefix
@@ -115,8 +112,8 @@ services:
 
 # NZBHydra2 - NZB meta search
   hydra:
-    image: linuxserver/hydra2
-    container_name: hydra
+    image: lscr.io/linuxserver/nzbhydra2:4.7.6
+    container_name: nzbhydra2
     hostname: hydra
     restart: unless-stopped
     ports:
@@ -128,7 +125,7 @@ services:
       PUID: ${USER_ID}
       PGID: ${GROUP_ID}
       TZ: ${TZ}
-    labels:
+#    labels:
 #      - "traefik.enable=true"
       ## HTTP Routers
 #      - "traefik.http.routers.hydra-rtr.entrypoints=https"
