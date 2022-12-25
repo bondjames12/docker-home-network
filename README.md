@@ -1,22 +1,7 @@
 # Description
-This is the updated docker-compose repo of all the media and home server apps described in the following guides on our website:
-
-* Docker Media Server - [https://www.smarthomebeginner.com/docker-home-media-server-2018-basic/](https://www.smarthomebeginner.com/docker-home-media-server-2018-basic/)
-* Traefik Reverse Proxy - [https://www.smarthomebeginner.com/traefik-reverse-proxy-tutorial-for-docker/](https://www.smarthomebeginner.com/traefik-reverse-proxy-tutorial-for-docker/)
-* Docker with Google OAuth2 - [https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/](https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/)
-
-## But what about Traefik 2.0?
-<p>At this point this stack is built on Traefik 1.0. As we move ours to Traefik 2.0, we will publish a new repository. </p>
-
-<p>Having said that, Traefik 1.7.16 (the final release in v1) still works great for the purposes of a media / home server stack. Traefik 2.0 is significantly different requiring a major rework of your files. Therefore, if you are already on Traefik v1, we do not see a need to upgrade to v2 at this point. </p>
-
-<p>If you are starting out, you may start with Traefik 2.0. However, documentation, community knowledge, and support for Traefik 2.0 is still quite limited at this time.</p>
-
-## What apps are included in this stack?
-We will try to keep this repo up-to-date. For now, here are the apps currently included in our stack:
+This is the updated docker compose repo of all the media and home server apps
 
 ### FRONTENDS
-
 * Traefik - Reverse Proxy
 * OAuth - Forward Authentication
 * Portainer - Container Management
@@ -59,8 +44,8 @@ We will try to keep this repo up-to-date. For now, here are the apps currently i
 ### MEDIA SERVER
 
 * Plex - Media Server
-* Jellyfin - Media Server (OBSOLETE)
-* Emby - Media Server (OBSOLETE)
+* Jellyfin - Media Server
+* Emby - Media Server
 * Tautulli - Previously PlexPy. Plex statistics and monitoring
 * Plex-Sync - For Syncing watched status between plex servers 
 * Telly Tv- IPTV proxy for Plex
@@ -90,15 +75,6 @@ We will try to keep this repo up-to-date. For now, here are the apps currently i
 
 * Ouroboros - Automatic Docker Container Updates
 * Docker-GC - Automatic Docker Garbage Collection
-
-## IPVanish VPN
-Some of the containers are behind VPN for privacy and security. We have been using [IPVanish](https://www.smarthomebeginner.com/go/ipvanish) for a while now. The following apps are behind IPVanish VPN:
-* Jackett
-* qBittorrent
-* Transmission BT
-* jDownloader
-
-Based on the docker-compose blocks for the above apps, you can almost any of the apps behind VPN. 
 
 # Usage
 
