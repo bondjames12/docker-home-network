@@ -1,0 +1,271 @@
+version: '3.3'
+services:
+  netclient:
+    network_mode: host
+    privileged: true
+    environment:
+      - TOKEN=${NETCLIENT_TOKEN}
+    volumes:
+      - '/etc/netclient:/etc/netclient'
+    container_name: netclient
+    image: 'gravitl/netclient:v0.16.3'
+    restart: always
+
+# TransmissionBT - Torrent Downloader
+# ONLY ACCESSIBLE THROUGH https://domain.com/transmission/web/ if using PathPrefix
+  transmission-vpn:
+    profiles: ["torrent"]
+    depends_on:
+      - transmission-openvpn-proxy
+      - netclient
+    image: haugene/transmission-openvpn:4.3.2
+    container_name: transmission-vpn
+    privileged: true
+    hostname: transmission
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${USER_DIR}/transmission/data:/data
+      - ${DOWNLOAD_DIR}:/downloads
+      - ${USER_DIR}/transmission/ovpn_configs/:/etc/openvpn/custom
+      - ${USER_DIR}/transmission/config:/config
+    environment:
+      CREATE_TUN_DEVICE: false
+      OPENVPN_PROVIDER: "custom"
+      OPENVPN_CONFIG: "AirVPN_America_UDP-443"
+      OPENVPN_USERNAME: notused
+      OPENVPN_PASSWORD: notused
+      OPENVPN_OPTS: --inactive 3600 --ping 10 --ping-exit 60
+      TZ: America\Edmonton
+      UMASK_SET: 002
+      TRANSMISSION_WEB_UI: transmission-web-control
+      TRANSMISSION_RPC_USERNAME: ${TRANSMISSION_USERNAME)
+      TRANSMISSION_RPC_PASSWORD: ${TRANSMISSION_PASSWORD}
+#     labels:
+#       - "autoheal=true"
+#       - "traefik.enable=true"
+       ## TCP Router
+       #- "traefik.tcp.routers.transmission-vpn-rtr.entrypoints=transrpc"
+       #- "traefik.tcp.routers.transmission-vpn-rtr.tls=false"
+       #- "traefik.tcp.routers.transmission-vpn-rtr.rule=HostSNI(`*`)"
+       #- "traefik.http.routers.transmission-vpn-rtr.service=transmission-rpc-svc"
+       #- "traefik.http.services.transmission-rpc-svc.loadbalancer.server.port=9091"
+       ## HTTP Routers
+ #      - "traefik.http.routers.transmission-vpn-rtr.entrypoints=https"
+ #      - "traefik.http.routers.transmission-vpn-rtr.rule=Host(`trans.$DOMAINNAME`)"
+ #      - "traefik.http.routers.transmission-vpn-rtr.tls=true"
+ #      - "traefik.http.routers.transmission-vpn-rtr.tls.certresolver=basic"
+       ## Middlewares
+#       - "traefik.http.routers.transmission-vpn-rtr.middlewares=rate-limit@file"
+       ## HTTP Services
+#       - "traefik.http.routers.transmission-vpn-rtr.service=transmission-vpn-svc"
+#       - "traefik.http.services.transmission-vpn-svc.loadbalancer.server.port=9091"
+
+  transmission-openvpn-proxy:
+    profiles: ["torrent"]
+    restart: always
+    links:
+      - 'transmission-vpn:transmission'
+    ports:
+      - '${TRANSMISSION_PORT}:8080'
+    container_name: transmission-openvpn-proxy
+    image: haugene/transmission-openvpn-proxy
+    
+# SABnzbd - Binary newsgrabber (NZB downloader)
+# Disable SABNnzbd's built-in HTTPS support for traefik proxy to work
+# Needs trailing / if using PathPrefix
+  sabnzbd:
+    image: linuxserver/sabnzbd
+    container_name: sabnzbd
+    hostname: sabnzbd
+    restart: unless-stopped
+    ports:
+      - "${SABNZBD_PORT}:8080"
+    volumes:
+      - ${USER_DIR}/docker/sabnzbd:/config
+      - ${FINISHED_DOWNLOAD_DIR}:/downloads
+      - ${INCOMPLETE_NEWSGROUP_DIR}:/incomplete-downloads
+    environment:
+      PUID: ${USER_ID}
+      PGID: ${GROUP_ID}
+      TZ: ${TZ}
+      UMASK_SET: 002
+#    labels:
+#      - "traefik.enable=true"
+      ## HTTP Routers
+#      - "traefik.http.routers.sabnzbd-rtr.entrypoints=https"
+#      - "traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME`)"                                                           
+#      - "traefik.http.routers.sabnzbd-rtr.tls=true"
+#      - "traefik.http.routers.sabnzbd-rtr.tls.certresolver=basic"
+      ## Middlewares
+#      - "traefik.http.routers.sabnzbd-rtr.middlewares=secure-chain@file"
+      ## HTTP Services
+#      - "traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc"
+#      - "traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080"
+
+############################# INDEXERS
+
+# NZBHydra2 - NZB meta search
+  hydra:
+    image: linuxserver/hydra2
+    container_name: hydra
+    hostname: hydra
+    restart: unless-stopped
+    ports:
+      - "${NZBHYDRA_PORT}:5076"
+    volumes:
+      - ${USER_DIR}/docker/hydra2:/config
+      - ${FINISHED_DOWNLOAD_DIR}:/downloads
+    environment:
+      PUID: ${USER_ID}
+      PGID: ${GROUP_ID}
+      TZ: ${TZ}
+    labels:
+#      - "traefik.enable=true"
+      ## HTTP Routers
+#      - "traefik.http.routers.hydra-rtr.entrypoints=https"
+#      - "traefik.http.routers.hydra-rtr.rule=Host(`hydra.$DOMAINNAME`)"                                                       
+#      - "traefik.http.routers.hydra-rtr.tls=true"
+#      - "traefik.http.routers.hydra-rtr.tls.certresolver=basic"
+      ## Middlewares
+#      - "traefik.http.routers.hydra-rtr.middlewares=secure-chain@file"
+      ## HTTP Services
+#      - "traefik.http.routers.hydra-rtr.service=hydra-svc"
+#      - "traefik.http.services.hydra-svc.loadbalancer.server.port=5076"
+
+############################# PVRS
+
+# Lidarr - Music Management
+# Set url_base in lidarr settings if using PathPrefix
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    hostname: lidarr
+    restart: unless-stopped
+    ports:
+      - "${LIDARR_PORT}:8686"
+    volumes:
+      - ${USER_DIR}/docker/lidarr:/config
+      - ${USER_DIR}:/downloads
+      - ${MUSIC_DIR}:/music
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PUID: ${USER_ID}
+      PGID: ${GROUP_ID}
+      TZ: ${TZ}
+#    labels:
+#      - "traefik.enable=true"
+      ## HTTP Routers
+#      - "traefik.http.routers.lidarr-rtr.entrypoints=https"
+#      - "traefik.http.routers.lidarr-rtr.rule=Host(`lidarr.$DOMAINNAME`)"                                                           
+#      - "traefik.http.routers.lidarr-rtr.tls=true"
+#      - "traefik.http.routers.lidarr-rtr.tls.certresolver=basic"
+      ## Middlewares
+#      - "traefik.http.routers.lidarr-rtr.middlewares=secure-chain@file"
+      ## HTTP Services
+#      - "traefik.http.routers.lidarr-rtr.service=lidarr-svc"
+#      - "traefik.http.services.lidarr-svc.loadbalancer.server.port=8686"
+
+# Radarr - Movie management
+# Set url_base in radarr settings if using PathPrefix
+  radarr:
+#    image: aront/radarr #for mp4_automator support
+    image: linuxserver/radarr
+    container_name: radarr
+    hostname: radarr
+    restart: unless-stopped
+    ports:
+      - "${RADARR_PORT}:7878"
+    volumes:
+      - ${USER_DIR}/docker/radarr:/config
+      - ${FINISHED_DOWNLOAD_DIR}:/downloads
+      - ${USER_DIR}:/Storage
+#      - ${USER_DIR}/docker/shared/mp4_automator:/config_mp4_automator
+#      - ${MOVIE_DIR}:/movies
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PUID: ${USER_ID}
+      PGID: ${GROUP_ID}
+      TZ: ${TZ}
+#    labels:
+#      - "traefik.enable=true"
+      ## HTTP Routers
+#      - "traefik.http.routers.radarr-rtr.entrypoints=https"
+#      - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME`)"                                                        
+#      - "traefik.http.routers.radarr-rtr.tls=true"
+#      - "traefik.http.routers.radarr-rtr.tls.certresolver=basic"
+      ## Middlewares
+#      - "traefik.http.routers.radarr-rtr.middlewares=secure-chain@file"
+      ## HTTP Services
+#      - "traefik.http.routers.radarr-rtr.service=radarr-svc"
+#      - "traefik.http.services.radarr-svc.loadbalancer.server.port=7878"
+
+# Sonarr - TV Shows management
+# Set url_base in sonarr settings if using PathPrefix
+  sonarr:
+#    image: aront/sonarr  #for mp4_automator support
+    image: linuxserver/sonarr
+    container_name: sonarr
+    hostname: sonarr
+    restart: unless-stopped
+    ports:
+      - "${SONARR_PORT}:8989"
+    volumes:
+      - ${USER_DIR}/docker/sonarr:/config
+      - ${USER_DIR}:/Storage
+      - "/etc/localtime:/etc/localtime:ro"
+#      - "${USER_DIR}/docker/shared/mp4_automator:/config_mp4_automator:rw"
+    environment:
+      PUID: ${USER_ID}
+      PGID: ${GROUP_ID}
+      TZ: ${TZ}
+#    labels:
+#      - "traefik.enable=true"
+      ## HTTP Routers
+#      - "traefik.http.routers.sonarr-rtr.entrypoints=https"
+#      - "traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME`)"                                                           
+#      - "traefik.http.routers.sonarr-rtr.tls=true"
+#      - "traefik.http.routers.sonarr-rtr.tls.certresolver=basic"
+      ## Middlewares
+#      - "traefik.http.routers.sonarr-rtr.middlewares=secure-chain@file"
+      ## HTTP Services
+#      - "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
+#      - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
+
+# Jacket - Torrent Site RSS converter/proxy 
+# https://hub.docker.com/r/linuxserver/jackett/
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    hostname: jackett
+    restart: unless-stopped
+    ports:
+      - "${JACKETT_PORT}:9117"
+    volumes:
+      - ${USER_DIR}/docker/jackett:/config
+    environment:
+      PUID: ${USER_ID}
+      PGID: ${GROUP_ID}
+      TZ: ${TZ}
+      AUTO_UPDATE: "true"
+#      RUN_OPTS:<run options here> #optional
+#    labels:
+#      - "traefik.enable=false"
+      ## HTTP Routers
+      #- "traefik.http.routers.sonarr-rtr.entrypoints=https"
+      #- "traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME`)"                                            $
+      #- "traefik.http.routers.sonarr-rtr.tls=true"
+      #- "traefik.http.routers.sonarr-rtr.tls.certresolver=basic"
+      ## Middlewares
+      #- "traefik.http.routers.sonarr-rtr.middlewares=secure-chain@file"
+      ## HTTP Services
+      #- "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
+      #- "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
