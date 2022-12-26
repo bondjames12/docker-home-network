@@ -32,7 +32,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${USER_DIR}/docker/transmission/data:/data
-      - ${DOWNLOAD_DIR}:/downloads
+      - ${USER_DIR}:/downloads
       - ${USER_DIR}/docker/transmission/ovpn_configs/:/etc/openvpn/custom
       - ${USER_DIR}/docker/transmission/config:/config
     environment:
@@ -88,7 +88,7 @@ services:
       - "${SABNZBD_PORT}:8080"
     volumes:
       - ${USER_DIR}/docker/sabnzbd:/config
-      - ${FINISHED_DOWNLOAD_DIR}:/downloads
+      - ${USER_DIR}:/downloads
       - ${INCOMPLETE_NEWSGROUP_DIR}:/incomplete-downloads
     environment:
       PUID: ${USER_ID}
@@ -183,7 +183,7 @@ services:
       - "${RADARR_PORT}:7878"
     volumes:
       - ${USER_DIR}/docker/radarr:/config
-      - ${FINISHED_DOWNLOAD_DIR}:/downloads
+      - ${USER_DIR}/tempDownloadStorage:/downloads
       - ${USER_DIR}:/Storage
 #      - ${USER_DIR}/docker/shared/mp4_automator:/config_mp4_automator
 #      - ${MOVIE_DIR}:/movies
@@ -237,23 +237,22 @@ services:
 #      - "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
 #      - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
 
-# Jacket - Torrent Site RSS converter/proxy 
-# https://hub.docker.com/r/linuxserver/jackett/
-  jackett:
-    image: linuxserver/jackett
-    container_name: jackett
-    hostname: jackett
+# prowlarr replacement for  Jacket - converter/proxy 
+# https://wiki.servarr.com/prowlarr/installation
+  prowlarr:
+    image: cr.hotio.dev/hotio/prowlarr
+    container_name: prowlarr
+    hostname: prowlarr
     restart: unless-stopped
     ports:
-      - "${JACKETT_PORT}:9117"
+      - "${JACKETT_PORT}:9696"
     volumes:
-      - ${USER_DIR}/docker/jackett:/config
+      - ${USER_DIR}/docker/prowlarr:/config
     environment:
-      PUID: ${USER_ID}
-      PGID: ${GROUP_ID}
+      PUID: 1000
+      PGID: 1000
       TZ: ${TZ}
-      AUTO_UPDATE: "true"
-#      RUN_OPTS:<run options here> #optional
+      UMASK: 002
 #    labels:
 #      - "traefik.enable=false"
       ## HTTP Routers
@@ -266,3 +265,29 @@ services:
       ## HTTP Services
       #- "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
       #- "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
+
+#ebook manager
+  calibre:
+    image: lscr.io/linuxserver/calibre:latest
+    container_name: calibre
+    security_opt:
+      - seccomp:unconfined #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+#      - PASSWORD= #optional
+#      - CLI_ARGS= #optional
+    volumes:
+      - ${USER_DIR}/docker/calibre:/config
+    ports:
+      - "${CALIBRE_DESKTOP_PORT}:8080"
+      - "${CALIBRE_WEB_PORT}:8081"
+    restart: unless-stopped
+
+#A container-based solution for automating Docker container base image updates.
+#https://containrrr.dev/watchtower/
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
